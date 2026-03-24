@@ -1,0 +1,105 @@
+<html>
+
+<head>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+</head>
+
+<body>
+
+<div id="app"
+     class="ui container">
+    <h1>GitHub Profiles</h1>
+    <github-user-card v-for="username in usernames" :username="username" :key="username"></github-user-card>
+</div>
+
+<script type="text/x-template" id="github-user-card-template">
+    <div class="ui card" v-if="user && user.login">
+        <div class="image">
+            <img :src="user.avatar_url" :alt="user.login">
+        </div>
+        <div class="content">
+            <a :href="`https://github.com/${username}`" class="header" target="_blank">{{ user.name || user.login }}</a>
+            <div class="meta">
+                <span class="date">Joined in {{ formattedDate }}</span>
+            </div>
+            <div class="description" v-if="user.bio">
+                {{ user.bio }}
+            </div>
+            <div class="description" v-else>
+                <em>No bio available</em>
+            </div>
+        </div>
+        <div class="extra content">
+            <a :href="`https://github.com/${username}?tab=followers`" target="_blank">
+                <i class="user icon"></i>
+                {{ user.followers.toLocaleString() }} followers
+            </a>
+        </div>
+    </div>
+
+    <div class="ui segment" v-else-if="loading">
+        <div class="ui active dimmer">
+            <div class="ui loader"></div>
+        </div>
+        <p>Loading @{{ username }}...</p>
+    </div>
+
+    <div class="ui negative message" v-else-if="error">
+        <div class="header">Error loading @{{ username }}</div>
+        <p>{{ error }}</p>
+    </div>
+</script>
+
+<!-- Import Vue.js and axios -->
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<!-- Your JavaScript Code :) -->
+<script>
+    Vue.createApp({
+        data() {
+            return {
+                usernames: ['yyx990803', 'vuejs', 'microsoft', 'github']
+            }
+        }
+    })
+        .component('github-user-card', {
+            template: '#github-user-card-template',
+            props: {
+                username: { type: String, required: true }
+            },
+            data() {
+                return {
+                    user: null,
+                    loading: true,
+                    error: null
+                }
+            },
+            computed: {
+                formattedDate() {
+                    if (!this.user || !this.user.created_at) return ''
+                    const date = new Date(this.user.created_at)
+                    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+                }
+            },
+            async created() {
+                this.loading = true
+                this.error = null
+
+                try {
+                    const response = await axios.get(`https://api.github.com/users/${this.username}`)
+                    this.user = response.data
+                } catch (err) {
+                    this.error = err.response?.data?.message || 'User not found'
+                    console.error(`Error fetching user ${this.username}:`, err)
+                } finally {
+                    this.loading = false
+                }
+            }
+        })
+        .mount('#app')
+</script>
+</body>
+
+</html>
